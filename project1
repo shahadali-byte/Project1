@@ -1,0 +1,188 @@
+# =========================
+# Project 1 - Applied Linear Algebra
+# =========================
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.set_printoptions(precision=6, suppress=True)  # clean numeric printing
+rng = np.random.default_rng(42)                  # fixed seed for reproducibility
+
+# -------------------------
+# 1) Time grid and synthetic data
+# -------------------------
+# Interval [a, b] over which we approximate. Keep this consistent across all integrals.
+a, b = 0.0, 2.0 * np.pi
+
+# Number of sample points for evaluating functions and doing numerical integration.
+# More points -> better integral accuracy. Keep >= 200 for smoothness.
+n_points = 200
+t = np.linspace(a, b, n_points)
+
+# Choose a "true" underlying signal for demonstration. This can be any smooth function.
+f_true = np.sin(t) + 0.5 * np.cos(2 * t)
+
+# Add Gaussian noise to simulate measurements. This is your "noisy time series".
+noise_std = 0.25
+f_noisy = f_true + noise_std * rng.standard_normal(n_points)
+
+# -------------------------
+# 2) Numerical integration
+# -------------------------
+# The project asks you to "program an integral". We'll use the trapezoidal rule.
+# It approximates ∫ y(x) dx over the given x-grid.
+# We wrap np.trapz for clarity and to keep the function name explicit in screenshots.
+
+def integrate_trap(y_values, x_values):
+    """
+    Compute the definite integral of y(x) given tabulated values (x_values, y_values)
+    using the trapezoidal rule.
+
+    Parameters
+    ----------
+    y_values : array-like
+        Values of the integrand evaluated on x_values.
+    x_values : array-like
+        Monotone grid over [a, b].
+
+    Returns
+    -------
+    float
+        Approximation to ∫_a^b y(x) dx.
+    """
+    return np.trapz(y_values, x_values)
+
+# Quick sanity check: ∫_0^{2π} 1 dt = 2π
+check = integrate_trap(np.ones_like(t), t)
+print("Sanity check ∫ 1 dt over [0, 2π] ≈", check, "  (true =", 2*np.pi, ")")
+
+# -------------------------
+# 2) Numerical integration
+# -------------------------
+# The project asks you to "program an integral". We'll use the trapezoidal rule.
+# It approximates ∫ y(x) dx over the given x-grid.
+# We wrap np.trapz for clarity and to keep the function name explicit in screenshots.
+
+def integrate_trap(y_values, x_values):
+    """
+    Compute the definite integral of y(x) given tabulated values (x_values, y_values)
+    using the trapezoidal rule.
+
+    Parameters
+    ----------
+    y_values : array-like
+        Values of the integrand evaluated on x_values.
+    x_values : array-like
+        Monotone grid over [a, b].
+
+    Returns
+    -------
+    float
+        Approximation to ∫_a^b y(x) dx.
+    """
+    return np.trapz(y_values, x_values)
+
+# Quick sanity check: ∫_0^{2π} 1 dt = 2π
+check = integrate_trap(np.ones_like(t), t)
+print("Sanity check ∫ 1 dt over [0, 2π] ≈", check, "  (true =", 2*np.pi, ")")
+
+# -------------------------
+# 3) Basis functions
+# -------------------------
+# You must choose at least 5. Below is a mixed polynomial-trigonometric set.
+# You can change these, but keep them independent over [a, b].
+
+def u1(x): return np.ones_like(x)     # 1
+def u2(x): return x                    # t
+def u3(x): return x**2                 # t^2
+def u4(x): return np.cos(x)            # cos t
+def u5(x): return np.sin(x)            # sin t
+
+basis = [u1, u2, u3, u4, u5]
+m = len(basis)
+print("Number of basis functions:", m)
+
+# -------------------------
+# 4) Inner products and linear system A c = b
+# -------------------------
+# We define the L2 inner product on [a, b]:
+#   <u_i, u_j> = ∫_a^b u_i(t) u_j(t) dt
+#   <u_i, f>   = ∫_a^b u_i(t) f_noisy(t) dt
+# We compute these integrals numerically using integrate_trap defined above.
+
+A = np.zeros((m, m))
+b_vec = np.zeros(m)
+
+# Fill the matrix A and vector b by numerical integration on the sampling grid.
+for i in range(m):
+    ui_vals = basis[i](t)
+    for j in range(m):
+        uj_vals = basis[j](t)
+        A[i, j] = integrate_trap(ui_vals * uj_vals, t)  # <u_i, u_j>
+    b_vec[i] = integrate_trap(ui_vals * f_noisy, t)      # <u_i, f>
+
+print("Coefficient matrix A:\n", A, "\n")
+print("Right-hand side vector b:\n", b_vec, "\n")
+
+# -------------------------
+# 5) Solve linear system for coefficients
+# -------------------------
+# This yields the least-squares projection of f_noisy onto span{u1,...,um}.
+# We assume A is well-conditioned for this basis on [a,b].
+
+c = np.linalg.solve(A, b_vec)
+print("Solved coefficients c:\n", c)
+
+# -------------------------
+# 6) Construct the approximation on the grid
+# -------------------------
+f_approx = np.zeros_like(t)
+for k in range(m):
+    f_approx += c[k] * basis[k](t)
+
+# Optional: compute simple error metrics against the known f_true for your report.
+rmse = np.sqrt(np.mean((f_approx - f_true)**2))
+mae  = np.mean(np.abs(f_approx - f_true))
+print(f"RMSE vs true signal: {rmse:.4f}   MAE: {mae:.4f}")
+
+# -------------------------
+# 7) Visualization (deliverable)
+# -------------------------
+# This plot should be included in your single PDF submission.
+
+plt.figure(figsize=(9,5))
+plt.plot(t, f_noisy, 'o', ms=3, alpha=0.35, label="Noisy data")
+plt.plot(t, f_approx, '-', lw=2, label="Approximation")
+plt.plot(t, f_true, '--', lw=1.5, label="True signal")
+plt.xlabel("t")
+plt.ylabel("f(t)")
+plt.title("Least-Squares Approximation Using Basis Functions")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# Optional: save the plot as a file for your PDF
+# plt.savefig("project1_plot.png", dpi=200, bbox_inches="tight")
+
+# -------------------------
+# 8) Symbolic template for your handwritten page
+# -------------------------
+# The project requires a handwritten page listing the basis and the matrix system
+# with inner products shown as integrals. We print a template you can copy by hand.
+
+basis_names = ["1", "t", "t^2", "cos t", "sin t"]
+print("Basis to write by hand:", ", ".join(basis_names))
+print("\nWrite this on paper:")
+print("A c = b, where A_ij = ∫_a^b u_i(t) u_j(t) dt and b_i = ∫_a^b u_i(t) f(t) dt.")
+print("For your chosen basis {u1,...,u5} = {1, t, t^2, cos t, sin t}:")
+
+for i, ui in enumerate(basis_names, start=1):
+    row = []
+    for j, uj in enumerate(basis_names, start=1):
+        row.append(f"<{ui}, {uj}>")
+    print("  [" + "  ".join(row) + "]  *  c{}".format(i) if i==1 else "  [" + "  ".join(row) + "]")
+
+print("\nRight-hand side b entries: [<1, f>, <t, f>, <t^2, f>, <cos t, f>, <sin t, f>]^T")
+print("Use a = 0 and b = 2π. You do NOT need to evaluate these integrals by hand.")
+
+
