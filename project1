@@ -160,29 +160,3 @@ plt.grid(True)
 plt.legend()
 plt.tight_layout()
 plt.show()
-
-# Optional: save the plot as a file for your PDF
-# plt.savefig("project1_plot.png", dpi=200, bbox_inches="tight")
-
-# -------------------------
-# 8) Symbolic template for your handwritten page
-# -------------------------
-# The project requires a handwritten page listing the basis and the matrix system
-# with inner products shown as integrals. We print a template you can copy by hand.
-
-basis_names = ["1", "t", "t^2", "cos t", "sin t"]
-print("Basis to write by hand:", ", ".join(basis_names))
-print("\nWrite this on paper:")
-print("A c = b, where A_ij = ∫_a^b u_i(t) u_j(t) dt and b_i = ∫_a^b u_i(t) f(t) dt.")
-print("For your chosen basis {u1,...,u5} = {1, t, t^2, cos t, sin t}:")
-
-for i, ui in enumerate(basis_names, start=1):
-    row = []
-    for j, uj in enumerate(basis_names, start=1):
-        row.append(f"<{ui}, {uj}>")
-    print("  [" + "  ".join(row) + "]  *  c{}".format(i) if i==1 else "  [" + "  ".join(row) + "]")
-
-print("\nRight-hand side b entries: [<1, f>, <t, f>, <t^2, f>, <cos t, f>, <sin t, f>]^T")
-print("Use a = 0 and b = 2π. You do NOT need to evaluate these integrals by hand.")
-
-
